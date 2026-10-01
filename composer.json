@@ -37,7 +37,6 @@
     },
     "conflict": {
         "laravel/ai": "<1.0.1 || >=2.0.0",
-        "laravel/mcp": "<1.0.1",
         "pestphp/pest": "<5.0.0"
     },
     "autoload": {
