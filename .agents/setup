@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+packages=(php8.4-cli php8.4-mbstring php8.4-xml php8.4-curl php8.4-sqlite3 php8.4-zip)
+if ! dpkg-query -W -f='${Status}\n' "${packages[@]}" 2>/dev/null | awk '
+    $0 != "install ok installed" { missing = 1 }
+    END { exit missing || NR != 6 }
+'; then
+    sudo apt-get update -qq
+    sudo apt-get install -y ca-certificates curl
+    curl -fsSL https://packages.sury.org/php/apt.gpg | sudo tee /usr/share/keyrings/php-sury.gpg >/dev/null
+    echo 'deb [signed-by=/usr/share/keyrings/php-sury.gpg] https://packages.sury.org/php/ bookworm main' | sudo tee /etc/apt/sources.list.d/php-sury.list >/dev/null
+    sudo apt-get update -qq
+    sudo apt-get install -y "${packages[@]}"
+fi
+
+if ! command -v composer >/dev/null; then
+    installer=$(mktemp)
+    trap 'rm -f "$installer"' EXIT
+    curl -fsSL https://getcomposer.org/installer -o "$installer"
+    expected=$(curl -fsSL https://composer.github.io/installer.sig)
+    actual=$(php8.4 -r 'echo hash_file("sha384", $argv[1]);' "$installer")
+    test "$actual" = "$expected"
+    sudo php8.4 "$installer" --install-dir=/usr/local/bin --filename=composer
+fi
+
+composer install --prefer-dist --no-interaction --no-progress
